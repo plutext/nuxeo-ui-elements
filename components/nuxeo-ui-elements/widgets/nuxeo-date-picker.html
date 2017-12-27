@@ -1,0 +1,188 @@
+<!--
+@license
+(C) Copyright Nuxeo Corp. (http://nuxeo.com/)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../paper-input/paper-input.html">
+<link rel="import" href="../../iron-form-element-behavior/iron-form-element-behavior.html">
+<link rel="import" href="../../iron-validatable-behavior/iron-validatable-behavior.html">
+<link rel="import" href="../../datetime-picker/overlay-date-picker.html">
+<link rel="import" href="../moment-import.html">
+
+
+<!--
+An element for picking a W3C YYYY-MM-DDThh:mm:ss.sTZD based date (eg 1997-07-16T19:20:30.45+01:00).
+
+Example:
+
+    <nuxeo-date-picker value="{{value}}" label="My label"></nuxeo-date-picker>
+
+@group Nuxeo UI
+@element nuxeo-date-picker
+@demo demo/widgets/index.html
+-->
+<dom-module id="nuxeo-date-picker">
+  <template>
+    <style>
+      :host {
+        display: block;
+        position: relative;
+        padding-bottom: 8px;
+      }
+
+      :host([hidden]) {
+        display: none;
+      }
+
+      :host([required]) label::after {
+        display: block;
+        content: '*';
+        position: absolute;
+        right: 0;
+        top: 0;
+        color: var(--paper-input-container-invalid-color, red);
+      }
+
+      paper-input {
+        --paper-input-container: {
+          padding: 0;
+        };
+        --paper-input-container-input-webkit-spinner: {
+          -webkit-appearance: none;
+        };
+        --paper-input-container-input-webkit-clear: {
+          -webkit-appearance: none;
+        };
+        /* XXX: fix for safari mobile: https://github.com/PolymerElements/paper-input/issues/352 */
+        --paper-input-container-input: {
+          min-height: 1px;
+        };
+      }
+
+      label {
+        @apply --nuxeo-label;
+      }
+      
+      overlay-date-picker {
+        width: 0;
+        height: 1px;
+        outline: none;
+        color: transparent;
+        pointer-events: none;
+        --datetime-input: {
+          display: none;
+        }
+      }
+    </style>
+
+    <label>[[label]]</label>
+
+    <paper-input id="date" name="[[name]]" required$="[[required]]" invalid="[[invalid]]"
+                 type="date" value="{{_inputValue}}" no-label-float disabled$="[[disabled]]"
+                 error-message="[[errorMessage]]" on-tap="_togglePicker">
+    </paper-input>
+
+    <overlay-date-picker id="picker" confirmed-date="{{_pickerValue}}" vertical-align="bottom" 
+                         native auto-confirm></overlay-date-picker>
+
+  </template>
+
+  <script>
+    Polymer({
+      is: 'nuxeo-date-picker',
+      behaviors: [Polymer.IronFormElementBehavior, Polymer.IronValidatableBehavior],
+      properties: {
+        label: String,
+
+        errorMessage: String,
+
+        required: {
+          type: Boolean,
+          value: false
+        },
+
+        value: {
+          type: String,
+          notify: true,
+          observer: '_valueChanged'
+        },
+
+        disabled: {
+          type: Boolean,
+          value: false
+        },
+
+        _pickerValue: {
+          type: String,
+          observer: '_pickerValueChanged'
+        },
+
+        _inputValue: {
+          type: String,
+          observer: '_inputValueChanged'
+        },
+
+        _wasOpened: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      _togglePicker: function() {
+        if (!this._wasOpened && !this.value) {
+          this.$.picker.now();
+        }
+        this._wasOpened = true;
+        this.$.picker.toggle();
+      },
+
+      _getValidity: function() {
+        if (!this.required) {
+          return true;
+        }
+        return !!this.value;
+      },
+
+      _valueChanged: function() {
+        if (this.value && moment(this.value).isValid()) {
+          this._pickerValue = moment(this.value).format('YYYY-MM-DD');
+          this._inputValue = moment(this._pickerValue).format('YYYY-MM-DD');
+        }
+
+        if (!this.value || this.value.length === 0) {
+          this._pickerValue = '';
+        }
+      },
+
+      _pickerValueChanged: function() {
+        if (this._wasOpened && this._pickerValue && moment(this._pickerValue).isValid()) {
+          this.set('value', moment(this._pickerValue).toJSON());
+          this._inputValue = moment(this._pickerValue).format('YYYY-MM-DD');
+        } else {
+          this.value = '';
+          this._inputValue = '';
+        }
+      },
+
+      _inputValueChanged: function() {
+        if (this._inputValue && moment(this._inputValue).isValid()) {
+          this.set('value', moment(this._inputValue).toJSON());
+        } else {
+          this.value = '';
+        }
+      }
+    });
+  </script>
+</dom-module>
